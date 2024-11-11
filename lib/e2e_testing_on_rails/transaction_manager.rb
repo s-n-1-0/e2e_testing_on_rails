@@ -10,7 +10,7 @@ module E2eTestingOnRails
       @connections = gather_connections
       @connections.each do |connection|
         connection.begin_transaction joinable: false, _lazy: false
-        connection.pool.lock_thread = true
+        connection.pool.connection.pool.pin_connection!(true)
       end
 
       # When connections are established in the future, begin a transaction too
@@ -26,7 +26,7 @@ module E2eTestingOnRails
 
           if connection && !@connections.include?(connection)
             connection.begin_transaction joinable: false, _lazy: false
-            connection.pool.lock_thread = true
+            connection.pool.pin_connection!(true)
             @connections << connection
           end
         end
@@ -40,7 +40,7 @@ module E2eTestingOnRails
 
       @connections.each do |connection|
         connection.rollback_transaction if connection.transaction_open?
-        connection.pool.lock_thread = false
+        connection.pool.unpin_connection!
       end
       @connections.clear
 
